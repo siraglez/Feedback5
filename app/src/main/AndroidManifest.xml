@@ -10,19 +10,45 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Feedback5"
+        android:theme="@style/Theme.Feedback5.Day"
         tools:targetApi="31">
         <activity
-            android:name=".actividades.MainActivity"
+            android:name=".actividades.LoginActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.Feedback5">
+            android:theme="@style/Theme.Feedback5.Day">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".actividades.MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"/>
+        <activity
+            android:name=".actividades.ConfiguracionActivity"
+            android:exported="true"
+            android:label="@string/app_name"/>
+
+        <receiver android:name=".widgets.NovelasFavoritasWidget"
+            android:label="Novelas Favoritas Widget"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/novelas_favoritas_widget_info" />
+        </receiver>
+
+        <service
+            android:name=".widgets.NovelasFavoritasWidgetService"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
+
     </application>
+
+    <uses-permission android:name="android.permission.INTERNET" />
 
 </manifest>
