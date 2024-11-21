@@ -40,7 +40,7 @@ class ListaNovelasFragment : Fragment() {
 
     private fun aplicarTema(context: Context) {
         val temaOscuro = sharedPreferences.getBoolean("temaOscuro", false)
-        context.setTheme(if (temaOscuro) R.style.Theme_Feedback4_Night else R.style.Theme_Feedback4_Day)
+        context.setTheme(if (temaOscuro) R.style.Theme_Feedback5_Night else R.style.Theme_Feedback5_Day)
     }
 
     override fun onCreateView(

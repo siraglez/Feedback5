@@ -58,7 +58,7 @@ class AgregarResenaFragment : Fragment() {
 
     private fun aplicarTema() {
         val temaOscuro = sharedPreferences.getBoolean("temaOscuro", false)
-        requireContext().setTheme(if (temaOscuro) R.style.Theme_Feedback4_Night else R.style.Theme_Feedback4_Day)
+        requireContext().setTheme(if (temaOscuro) R.style.Theme_Feedback5_Night else R.style.Theme_Feedback5_Day)
     }
 
     companion object {

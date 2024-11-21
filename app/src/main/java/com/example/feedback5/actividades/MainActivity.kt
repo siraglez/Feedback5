@@ -3,7 +3,7 @@ package com.example.feedback5.actividades
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
-import android.widget.ImageButton
+import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
 import com.example.feedback5.R
 import com.example.feedback5.baseDeDatos.NovelaDatabaseHelper
@@ -45,7 +45,7 @@ class MainActivity : AppCompatActivity(), ListaNovelasFragment.OnNovelaSelectedL
         }
 
         // Configuración del botón de configuración para abrir ConfiguracionActivity
-        val btnConfiguracion = findViewById<ImageButton>(R.id.btnConfiguracion)
+        val btnConfiguracion = findViewById<Button>(R.id.btnConfiguracion)
         btnConfiguracion.setOnClickListener {
             val intent = Intent(this, ConfiguracionActivity::class.java)
             startActivity(intent)
@@ -88,7 +88,7 @@ class MainActivity : AppCompatActivity(), ListaNovelasFragment.OnNovelaSelectedL
 
     private fun aplicarTema() {
         val temaOscuro = sharedPreferences.getBoolean("temaOscuro", false)
-        setTheme(if (temaOscuro) R.style.Theme_Feedback4_Night else R.style.Theme_Feedback4_Day)
+        setTheme(if (temaOscuro) R.style.Theme_Feedback5_Night else R.style.Theme_Feedback5_Day)
     }
 
     override fun onResume() {

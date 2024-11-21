@@ -71,7 +71,7 @@ class ConfiguracionActivity : AppCompatActivity() {
 
     private fun aplicarTema() {
         val temaOscuro = sharedPreferences.getBoolean("temaOscuro", false)
-        setTheme(if (temaOscuro) R.style.Theme_Feedback4_Night else R.style.Theme_Feedback4_Day)
+        setTheme(if (temaOscuro) R.style.Theme_Feedback5_Night else R.style.Theme_Feedback5_Day)
     }
 
     private fun realizarCopiaDeSeguridad() {
