@@ -67,4 +67,9 @@ class AgregarNovelaFragment : Fragment() {
         val temaOscuro = sharedPreferences.getBoolean("temaOscuro", false)
         requireContext().setTheme(if (temaOscuro) R.style.Theme_Feedback5_Night else R.style.Theme_Feedback5_Day)
     }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        // Liberar adaptadores o listeners si es necesario
+    }
 }

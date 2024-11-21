@@ -74,4 +74,9 @@ class ListaNovelasFragment : Fragment() {
         adapter.addAll(novelas)
         adapter.notifyDataSetChanged()
     }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        // Liberar adaptadores o listeners si es necesario
+    }
 }
