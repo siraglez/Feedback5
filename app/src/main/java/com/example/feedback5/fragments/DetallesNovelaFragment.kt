@@ -13,32 +13,29 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.example.feedback5.R
-import com.example.feedback5.actividades.MainActivity
-import com.example.feedback5.baseDeDatos.NovelaDatabaseHelper
-import com.example.feedback5.dataClasses.Novela
+import com.example.feedback5.baseDeDatos.DatabaseProvider
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class DetallesNovelaFragment : Fragment() {
-
-    private lateinit var novela: Novela
-    private lateinit var novelaDbHelper: NovelaDatabaseHelper
+    private lateinit var novela: com.example.feedback5.dataClasses.Novela
     private lateinit var resenasAdapter: ArrayAdapter<String>
     private lateinit var sharedPreferences: SharedPreferences
+    private val novelaDao by lazy { DatabaseProvider.getDatabase(requireContext()).novelaDao() }
+    private val resenaDao by lazy { DatabaseProvider.getDatabase(requireContext()).resenaDao() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         sharedPreferences = requireContext().getSharedPreferences("UsuarioPreferences", Context.MODE_PRIVATE)
-        aplicarTema()
 
         arguments?.let {
-            novela = it.getSerializable("novela") as Novela
+            novela = it.getSerializable("novela") as com.example.feedback5.dataClasses.Novela
         }
-        novelaDbHelper = NovelaDatabaseHelper(requireContext())
     }
 
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = inflater.inflate(R.layout.fragment_detalles_novela, container, false)
 
         view.findViewById<TextView>(R.id.tvTitulo).text = novela.titulo
@@ -46,19 +43,27 @@ class DetallesNovelaFragment : Fragment() {
         view.findViewById<TextView>(R.id.tvAnio).text = novela.anioPublicacion.toString()
         view.findViewById<TextView>(R.id.tvSinopsis).text = novela.sinopsis
 
-        // Configuración del ListView de reseñas
         val listViewResenas = view.findViewById<ListView>(R.id.listViewResenas)
-        resenasAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_list_item_1, obtenerResenas())
-        listViewResenas.adapter = resenasAdapter
+
+        GlobalScope.launch(Dispatchers.IO) {
+            val resenas = resenaDao.obtenerResenasPorTitulo(novela.titulo).map { it.resena }
+            withContext(Dispatchers.Main) {
+                resenasAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_list_item_1, resenas)
+                listViewResenas.adapter = resenasAdapter
+            }
+        }
 
         view.findViewById<Button>(R.id.btnMarcarFavorita).setOnClickListener {
-            novela.esFavorita = !novela.esFavorita
-            novelaDbHelper.actualizarFavorito(novela.titulo, novela.esFavorita)
-            Toast.makeText(context, if (novela.esFavorita) "Marcada como favorita" else "Desmarcada como favorita", Toast.LENGTH_SHORT).show()
+            GlobalScope.launch(Dispatchers.IO) {
+                novelaDao.actualizarFavorito(novela.titulo, !novela.esFavorita)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Estado actualizado", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
 
         view.findViewById<Button>(R.id.btnAgregarResena).setOnClickListener {
-            (activity as? MainActivity)?.mostrarAgregarResenaFragment(novela)
+            (activity as? com.example.feedback5.actividades.MainActivity)?.mostrarAgregarResenaFragment(novela)
         }
 
         view.findViewById<Button>(R.id.btnVolverLista).setOnClickListener {
@@ -66,43 +71,25 @@ class DetallesNovelaFragment : Fragment() {
         }
 
         view.findViewById<Button>(R.id.btnEliminarNovela).setOnClickListener {
-            novelaDbHelper.eliminarNovela(novela.titulo)
-            Toast.makeText(context, "Novela eliminada", Toast.LENGTH_SHORT).show()
-            activity?.supportFragmentManager?.popBackStack()
+            GlobalScope.launch(Dispatchers.IO) {
+                novelaDao.eliminarNovela(novela.titulo)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Novela eliminada", Toast.LENGTH_SHORT).show()
+                    activity?.supportFragmentManager?.popBackStack()
+                }
+            }
         }
 
         return view
     }
 
-    private fun obtenerResenas(): List<String> {
-        return novelaDbHelper.obtenerResenasPorTitulo(novela.titulo)
-    }
-
-    private fun aplicarTema() {
-        val temaOscuro = sharedPreferences.getBoolean("temaOscuro", false)
-        requireContext().setTheme(if (temaOscuro) R.style.Theme_Feedback5_Night else R.style.Theme_Feedback5_Day)
-    }
-
-    override fun onResume() {
-        super.onResume()
-        // Actualizar la lista de reseñas cada vez que el fragmento se reanuda
-        resenasAdapter.clear()
-        resenasAdapter.addAll(obtenerResenas())
-        resenasAdapter.notifyDataSetChanged()
-    }
-
     companion object {
-        fun newInstance(novela: Novela): DetallesNovelaFragment {
+        fun newInstance(novela: com.example.feedback5.dataClasses.Novela): DetallesNovelaFragment {
             val fragment = DetallesNovelaFragment()
             val args = Bundle()
             args.putSerializable("novela", novela)
             fragment.arguments = args
             return fragment
         }
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        // Liberar adaptadores o listeners si es necesario
     }
 }

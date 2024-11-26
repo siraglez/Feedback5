@@ -1,7 +1,5 @@
 package com.example.feedback5.fragments
 
-import android.content.Context
-import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -11,25 +9,15 @@ import android.widget.EditText
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.example.feedback5.R
-import com.example.feedback5.baseDeDatos.NovelaDatabaseHelper
 import com.example.feedback5.dataClasses.Novela
+import com.example.feedback5.baseDeDatos.DatabaseProvider
+import kotlinx.coroutines.*
 
 class AgregarNovelaFragment : Fragment() {
-
-    private lateinit var novelaDbHelper: NovelaDatabaseHelper
-    private lateinit var sharedPreferences: SharedPreferences
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        sharedPreferences = requireContext().getSharedPreferences("UsuarioPreferences", Context.MODE_PRIVATE)
-        aplicarTema()
-
-        novelaDbHelper = NovelaDatabaseHelper(requireContext())
-    }
+    private val novelaDao by lazy { DatabaseProvider.getDatabase(requireContext()).novelaDao() }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.fragment_agregar_novela, container, false)
 
@@ -47,29 +35,20 @@ class AgregarNovelaFragment : Fragment() {
             val sinopsis = etSinopsis.text.toString()
 
             if (titulo.isNotBlank() && autor.isNotBlank() && anio != null && sinopsis.isNotBlank()) {
-                val novela = Novela(titulo, autor, anio, sinopsis)
-                novelaDbHelper.agregarNovela(novela)
-                Toast.makeText(requireContext(), "Novela agregada", Toast.LENGTH_SHORT).show()
-                requireActivity().supportFragmentManager.popBackStack()
+                val nuevaNovela = Novela(titulo = titulo, autor = autor, anioPublicacion = anio, sinopsis = sinopsis)
+                GlobalScope.launch(Dispatchers.IO) {
+                    novelaDao.agregarNovela(nuevaNovela)
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(requireContext(), "Novela agregada exitosamente", Toast.LENGTH_SHORT).show()
+                        parentFragmentManager.popBackStack()
+                    }
+                }
             } else {
-                Toast.makeText(requireContext(), "Por favor, completa todos los campos", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "Por favor completa todos los campos", Toast.LENGTH_SHORT).show()
             }
         }
 
-        btnVolver.setOnClickListener {
-            requireActivity().supportFragmentManager.popBackStack()
-        }
-
+        btnVolver.setOnClickListener { parentFragmentManager.popBackStack() }
         return view
-    }
-
-    private fun aplicarTema() {
-        val temaOscuro = sharedPreferences.getBoolean("temaOscuro", false)
-        requireContext().setTheme(if (temaOscuro) R.style.Theme_Feedback5_Night else R.style.Theme_Feedback5_Day)
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        // Liberar adaptadores o listeners si es necesario
     }
 }

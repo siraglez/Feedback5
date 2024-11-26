@@ -7,16 +7,22 @@ import android.widget.Button
 import android.widget.Switch
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.example.feedback5.LoginActivity
 import com.example.feedback5.R
-import com.example.feedback5.baseDeDatos.UsuarioDatabaseHelper
+import com.example.feedback5.baseDeDatos.DatabaseProvider
+import com.example.feedback5.dao.UsuarioDao
 import com.example.feedback5.dataClasses.Usuario
+import com.google.firebase.crashlytics.buildtools.reloc.com.google.common.reflect.TypeToken
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
-import java.io.FileOutputStream
-import java.io.OutputStreamWriter
+import com.google.gson.Gson
 
 class ConfiguracionActivity : AppCompatActivity() {
 
-    private lateinit var usuarioDbHelper: UsuarioDatabaseHelper
+    private lateinit var usuarioDao: UsuarioDao
     private lateinit var sharedPreferences: SharedPreferences
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -28,7 +34,7 @@ class ConfiguracionActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_configuracion)
 
-        usuarioDbHelper = UsuarioDatabaseHelper(this)
+        usuarioDao = DatabaseProvider.getDatabase(this).usuarioDao()
 
         val switchTemaOscuro = findViewById<Switch>(R.id.switchTemaOscuro)
         val btnBackup = findViewById<Button>(R.id.btnBackup)
@@ -75,49 +81,43 @@ class ConfiguracionActivity : AppCompatActivity() {
     }
 
     private fun realizarCopiaDeSeguridad() {
-        // Guardar un archivo de copia de seguridad con la información de los usuarios
-        val usuarios = usuarioDbHelper.obtenerUsuarios()
-        val backupFile = File(getExternalFilesDir(null), "copia_de_seguridad_usuarios.txt")
-
-        try {
-            FileOutputStream(backupFile).use { fos ->
-                OutputStreamWriter(fos).use { writer ->
-                    usuarios.forEach { usuario ->
-                        writer.write("Email: ${usuario.email}, Password: ${usuario.password}, Tema Oscuro: ${usuario.temaOscuro}\n")
-                    }
+        GlobalScope.launch(Dispatchers.IO) {
+            val usuarios = usuarioDao.obtenerUsuarios()
+            val backupFile = File(getExternalFilesDir(null), "usuarios_backup.json")
+            try {
+                val usuariosJson = Gson().toJson(usuarios)
+                backupFile.writeText(usuariosJson)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@ConfiguracionActivity, "Copia de seguridad realizada en: ${backupFile.absolutePath}", Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@ConfiguracionActivity, "Error al realizar la copia de seguridad: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
-            Toast.makeText(this, "Copia de seguridad realizada en: ${backupFile.absolutePath}", Toast.LENGTH_LONG).show()
-        } catch (e: Exception) {
-            Toast.makeText(this, "Error al realizar la copia de seguridad: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
     private fun restaurarDatos() {
-        val backupFile = File(getExternalFilesDir(null), "copia_de_seguridad_usuarios.txt")
-
+        val backupFile = File(getExternalFilesDir(null), "usuarios_backup.json")
         if (!backupFile.exists()) {
             Toast.makeText(this, "No se encontró ninguna copia de seguridad.", Toast.LENGTH_LONG).show()
             return
         }
 
-        try {
-            backupFile.bufferedReader().useLines { lines ->
-                lines.forEach { line ->
-                    val datos = line.split(", ")
-                    if (datos.size == 3) {
-                        val email = datos[0].substringAfter("Email: ").trim()
-                        val password = datos[1].substringAfter("Password: ").trim()
-                        val temaOscuro = datos[2].substringAfter("Tema Oscuro: ").trim().toBoolean()
-
-                        val usuario = Usuario(email, password, temaOscuro)
-                        usuarioDbHelper.agregarUsuarioSiNoExiste(usuario)
-                    }
+        GlobalScope.launch(Dispatchers.IO) {
+            try {
+                val usuariosJson = backupFile.readText()
+                val usuarios: List<Usuario> = Gson().fromJson(usuariosJson, object : TypeToken<List<Usuario>>() {}.type)
+                usuarios.forEach { usuarioDao.agregarUsuario(it) }
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@ConfiguracionActivity, "Datos restaurados exitosamente.", Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@ConfiguracionActivity, "Error al restaurar los datos: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
-            Toast.makeText(this, "Datos restaurados exitosamente desde la copia de seguridad.", Toast.LENGTH_LONG).show()
-        } catch (e: Exception) {
-            Toast.makeText(this, "Error al restaurar los datos: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 

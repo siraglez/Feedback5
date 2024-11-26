@@ -11,29 +11,28 @@ import android.widget.EditText
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.example.feedback5.R
-import com.example.feedback5.baseDeDatos.NovelaDatabaseHelper
+import com.example.feedback5.dataClasses.Resena
+import com.example.feedback5.baseDeDatos.DatabaseProvider
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class AgregarResenaFragment : Fragment() {
-
     private lateinit var tituloNovela: String
-    private lateinit var novelaDbHelper: NovelaDatabaseHelper
     private lateinit var sharedPreferences: SharedPreferences
+    private val resenaDao by lazy { DatabaseProvider.getDatabase(requireContext()).resenaDao() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         sharedPreferences = requireContext().getSharedPreferences("UsuarioPreferences", Context.MODE_PRIVATE)
-        aplicarTema()
 
         arguments?.let {
             tituloNovela = it.getString("tituloNovela", "")
         }
-        novelaDbHelper = NovelaDatabaseHelper(requireContext())
     }
 
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = inflater.inflate(R.layout.fragment_agregar_resena, container, false)
 
         val etResena = view.findViewById<EditText>(R.id.etResena)
@@ -42,11 +41,14 @@ class AgregarResenaFragment : Fragment() {
         btnAgregarResena.setOnClickListener {
             val resenaTexto = etResena.text.toString()
             if (resenaTexto.isNotBlank()) {
-                if (novelaDbHelper.agregarResena(tituloNovela, resenaTexto)) {
-                    Toast.makeText(requireContext(), "Reseña agregada exitosamente", Toast.LENGTH_SHORT).show()
-                    parentFragmentManager.popBackStack()
-                } else {
-                    Toast.makeText(requireContext(), "Error al agregar reseña", Toast.LENGTH_SHORT).show()
+                GlobalScope.launch(Dispatchers.IO) {
+                    val resena = Resena(tituloNovela = tituloNovela, resena = resenaTexto)
+                    resenaDao.agregarResena(resena)
+
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(requireContext(), "Reseña agregada exitosamente", Toast.LENGTH_SHORT).show()
+                        parentFragmentManager.popBackStack()
+                    }
                 }
             } else {
                 Toast.makeText(requireContext(), "La reseña no puede estar vacía", Toast.LENGTH_SHORT).show()
@@ -54,11 +56,6 @@ class AgregarResenaFragment : Fragment() {
         }
 
         return view
-    }
-
-    private fun aplicarTema() {
-        val temaOscuro = sharedPreferences.getBoolean("temaOscuro", false)
-        requireContext().setTheme(if (temaOscuro) R.style.Theme_Feedback5_Night else R.style.Theme_Feedback5_Day)
     }
 
     companion object {
@@ -69,10 +66,5 @@ class AgregarResenaFragment : Fragment() {
             fragment.arguments = args
             return fragment
         }
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        // Liberar adaptadores o listeners si es necesario
     }
 }

@@ -6,7 +6,8 @@ import android.os.Bundle
 import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
 import com.example.feedback5.R
-import com.example.feedback5.baseDeDatos.NovelaDatabaseHelper
+import com.example.feedback5.baseDeDatos.DatabaseProvider
+import com.example.feedback5.dao.NovelaDao
 import com.example.feedback5.fragments.AgregarNovelaFragment
 import com.example.feedback5.fragments.DetallesNovelaFragment
 import com.example.feedback5.fragments.ListaNovelasFragment
@@ -15,7 +16,7 @@ import com.example.feedback5.fragments.AgregarResenaFragment
 
 class MainActivity : AppCompatActivity(), ListaNovelasFragment.OnNovelaSelectedListener {
 
-    private lateinit var novelaDbHelper: NovelaDatabaseHelper
+    private lateinit var novelaDao: NovelaDao
     private lateinit var sharedPreferences: SharedPreferences
     private var temaOscuro: Boolean = false
 
@@ -27,7 +28,7 @@ class MainActivity : AppCompatActivity(), ListaNovelasFragment.OnNovelaSelectedL
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        novelaDbHelper = NovelaDatabaseHelper(this)
+        novelaDao = DatabaseProvider.getDatabase(this).novelaDao()
 
         // Verificar si el Intent del widget tiene el objeto novela
         val novela = intent.getSerializableExtra("novela") as? Novela
